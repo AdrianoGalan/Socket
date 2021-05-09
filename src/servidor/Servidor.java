@@ -1,14 +1,17 @@
 package servidor;
 
-import java.io.BufferedReader;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 
 import model.Usuario;
 import util.Criptografica;
@@ -16,6 +19,10 @@ import util.Criptografica;
 public class Servidor {
 
 	public static void main(String[] args) {
+		
+		ScriptEngineManager mgr = new ScriptEngineManager(null);
+
+		ScriptEngine engine = mgr.getEngineByName("javascript");
 
 		List<Usuario> usuarios = new ArrayList<Usuario>();
 		Criptografica cpt = new Criptografica();
@@ -28,6 +35,7 @@ public class Servidor {
 
 		}
 
+		
 		try {
 			ServerSocket server = new ServerSocket(9001);
 			Socket socket = server.accept();
@@ -37,15 +45,18 @@ public class Servidor {
 
 			Usuario usuario = new Usuario();
 			
+			// recebe o usuario
 			msgIn = cpt.descriptografiaBase64Decode(in.readUTF());
 			usuario.setUsuario(msgIn);
 			
+			//recebe a senha
 			msgIn = cpt.descriptografiaBase64Decode(in.readUTF());
 			usuario.setSenha(msgIn);
 			
+			//recebe a equação
 			equacao = cpt.descriptografiaBase64Decode(in.readUTF());
 			
-			
+			//valida o usuario
 			if(usuarios.contains(usuario)) {
 				
 				msgOut = "usuario valido";
@@ -54,28 +65,30 @@ public class Servidor {
 				msgOut = "usuario invalido";
 			}
 			
-			
+			// responde se usuario valido ou não 
 			out.writeUTF(msgOut);
 			out.flush();
 			
+			// envia chave
+			msgOut = cpt.criptografiaBase64Encoder(UUID.randomUUID().toString());
+			out.writeUTF(msgOut);
+			out.flush();
 			
+			// envia resultado equação
+			msgOut = cpt.criptografiaBase64Encoder(engine.eval(equacao).toString());
+			out.writeUTF(msgOut);
+			out.flush();
+			
+		
+			
+		
 			
 
-		//	while (!msgIn.equals("parar")) {
-
-		//		msgIn = in.readUTF();
-		//		System.out.println("o Cliente falou " + msgIn);
-
-		//		msgOut = entradaTeclado.readLine();
-		//		out.writeUTF(msgOut);
-				out.flush();
-
-	//		}
 			in.close();
 			out.close();
 			server.close();
 
-		} catch (IOException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
